@@ -76,6 +76,12 @@ function tokenizeExpression(expression) {
       continue;
     }
 
+    if (character === '!') {
+      tokens.push('!');
+      index += 1;
+      continue;
+    }
+
     if (expression.startsWith('sqrt', index)) {
       tokens.push('sqrt');
       index += 4;
@@ -178,6 +184,30 @@ function evaluateExpression(expression) {
       return value;
     }
 
+    function applyFactorial(value) {
+      while (peek() === '!') {
+        consume('!');
+
+        if (!Number.isInteger(value) || value < 0) {
+          throw new Error('Factorial requires a non-negative integer');
+        }
+
+        let factorial = 1;
+        for (let index = 2; index <= value; index += 1) {
+          factorial *= index;
+        }
+
+        value = factorial;
+      }
+
+      return value;
+    }
+
+    function parsePostfix() {
+      const value = parsePrimary();
+      return applyFactorial(value);
+    }
+
     function parseUnary() {
       const token = peek();
 
@@ -193,30 +223,30 @@ function evaluateExpression(expression) {
 
       if (token === '√' || token === 'sqrt') {
         consume();
-        return Math.sqrt(parseUnary());
+        return applyFactorial(Math.sqrt(parseUnary()));
       }
 
       if (token === 'sin') {
         consume();
-        return Math.sin(parseUnary());
+        return applyFactorial(Math.sin(parseUnary()));
       }
 
       if (token === 'cos') {
         consume();
-        return Math.cos(parseUnary());
+        return applyFactorial(Math.cos(parseUnary()));
       }
 
       if (token === 'tan') {
         consume();
-        return Math.tan(parseUnary());
+        return applyFactorial(Math.tan(parseUnary()));
       }
 
       if (token === 'π') {
         consume();
-        return Math.PI;
+        return applyFactorial(Math.PI);
       }
 
-      return parsePrimary();
+      return parsePostfix();
     }
 
     function parsePrimary() {

@@ -280,14 +280,14 @@ body {
   display: none;
   position: absolute;
   top: 0;
-  right: -150px;
-  grid-template-columns: repeat(2, minmax(54px, 1fr));
-  gap: 8px;
-  padding: 8px;
-  border-radius: 16px;
+  right: -260px;
+  grid-template-columns: repeat(3, minmax(66px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  border-radius: 18px;
   background: rgba(17, 24, 39, 0.96);
   border: 1px solid #374151;
-  min-width: 124px;
+  min-width: 220px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
   z-index: 10;
 }
@@ -297,6 +297,7 @@ body {
 }
 
 .menu-btn {
-  padding: 12px 0;
-  font-size: 0.95rem;
+  padding: 14px 0;
+  min-height: 56px;
+  font-size: 1rem;
 }
