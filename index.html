@@ -9,8 +9,16 @@
   <body>
     <main class="calculator">
       <section class="display" aria-label="計算表示">
-        <div class="expression">12 + 3 × 4</div>
-        <div class="result">24</div>
+        <div class="display-stack" id="displayStack">
+          <div class="display-text">
+            <div class="expression">0</div>
+            <div class="result">0</div>
+          </div>
+        </div>
+        <div class="popup-stack" id="popupStack" aria-live="polite"></div>
+        <div class="popup-track" id="popupTrack" aria-hidden="true">
+          <div class="popup-thumb" id="popupThumb"></div>
+        </div>
       </section>
 
       <section class="controls">

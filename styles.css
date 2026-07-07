@@ -39,22 +39,124 @@ body {
   justify-content: flex-end;
   gap: 6px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  position: relative;
+  overflow: visible;
+}
+
+.display-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 64px;
+}
+
+.display-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .expression {
   font-size: 1rem;
   color: #9ca3af;
   min-height: 1.4em;
-  text-align: right;
+  text-align: left;
   letter-spacing: 0.02em;
+  flex: 1 1 auto;
 }
 
 .result {
   font-size: 2.3rem;
   font-weight: 700;
   color: #ffffff;
-  text-align: right;
+  text-align: left;
   letter-spacing: 0.02em;
+  flex: 0 0 auto;
+}
+
+.popup-stack {
+  position: absolute;
+  left: -260px;
+  top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 12;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 24px;
+  scrollbar-width: none;
+}
+
+.popup-stack::-webkit-scrollbar {
+  display: none;
+}
+
+.expression-popup {
+  display: inline-block;
+  width: fit-content;
+  max-width: 220px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(17, 24, 39, 0.96);
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  border: 1px solid #374151;
+  line-height: 1.4;
+  flex-shrink: 0;
+  overflow-wrap: anywhere;
+}
+
+.expression-popup.single-line {
+  white-space: nowrap;
+}
+
+.expression-popup.multi-line {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: normal;
+}
+
+.popup-line {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.popup-track {
+  position: absolute;
+  top: 18px;
+  left: -42px;
+  width: 4px;
+  height: 420px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.popup-track.visible {
+  opacity: 1;
+}
+
+.popup-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  pointer-events: none;
 }
 
 .controls {
