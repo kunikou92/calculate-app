@@ -38,15 +38,106 @@ function isIncompleteExpression(expression) {
   return openingParentheses > closingParentheses;
 }
 
+function getOperatorPrecedence(operator) {
+  if (operator === '+' || operator === '-') {
+    return 1;
+  }
+
+  if (operator === '*' || operator === '/') {
+    return 2;
+  }
+
+  return 0;
+}
+
+function applyOperator(values, operators, operator) {
+  const right = values.pop();
+  const left = values.pop();
+
+  if (left === undefined || right === undefined) {
+    throw new Error('Invalid expression');
+  }
+
+  switch (operator) {
+    case '+':
+      values.push(left + right);
+      break;
+    case '-':
+      values.push(left - right);
+      break;
+    case '*':
+      values.push(left * right);
+      break;
+    case '/':
+      if (right === 0) {
+        throw new Error('Division by zero');
+      }
+      values.push(left / right);
+      break;
+    default:
+      throw new Error('Unsupported operator');
+  }
+}
+
 function evaluateExpression(expression) {
   if (!expression || isIncompleteExpression(expression)) {
     return null;
   }
 
   const sanitizedExpression = sanitizeExpression(expression);
+  const values = [];
+  const operators = [];
+  let numberBuffer = '';
 
   try {
-    const result = Function(`"use strict"; return (${sanitizedExpression})`)();
+    const tokens = sanitizedExpression.match(/\d+(?:\.\d+)?|[()+\-*/]/g) || [];
+
+    for (const token of tokens) {
+      if (/^\d+(?:\.\d+)?$/.test(token)) {
+        values.push(Number(token));
+        continue;
+      }
+
+      if (token === '(') {
+        operators.push(token);
+        continue;
+      }
+
+      if (token === ')') {
+        while (operators.length && operators[operators.length - 1] !== '(') {
+          const operator = operators.pop();
+          applyOperator(values, operators, operator);
+        }
+
+        if (operators.pop() !== '(') {
+          throw new Error('Mismatched parentheses');
+        }
+        continue;
+      }
+
+      if (['+', '-', '*', '/'].includes(token)) {
+        while (
+          operators.length &&
+          operators[operators.length - 1] !== '(' &&
+          getOperatorPrecedence(operators[operators.length - 1]) >= getOperatorPrecedence(token)
+        ) {
+          const operator = operators.pop();
+          applyOperator(values, operators, operator);
+        }
+
+        operators.push(token);
+      }
+    }
+
+    while (operators.length) {
+      const operator = operators.pop();
+      if (operator === '(') {
+        throw new Error('Mismatched parentheses');
+      }
+      applyOperator(values, operators, operator);
+    }
+
+    const result = values[0];
     return Number.isFinite(result) ? result : null;
   } catch (error) {
     return null;
@@ -142,11 +233,37 @@ function updateDisplay() {
   resultDisplay.textContent = result === null ? '0' : String(result);
 }
 
+function appendDecimal() {
+  if (isCalculationCompleted) {
+    currentExpression = '';
+    isCalculationCompleted = false;
+  }
+
+  if (!currentExpression || /[+\-*/^]/.test(currentExpression.slice(-1)) || currentExpression.endsWith('(')) {
+    currentExpression += '0.';
+    updateDisplay();
+    return;
+  }
+
+  const lastToken = currentExpression.split(/([+\-*/^()])/g).filter(Boolean).pop() || '';
+  if (!lastToken || lastToken.includes('.')) {
+    return;
+  }
+
+  currentExpression += '.';
+  updateDisplay();
+}
+
 function appendValue(value) {
   if (value === 'C') {
     currentExpression = '';
     isCalculationCompleted = false;
     hideCenterDisplay();
+    return;
+  }
+
+  if (value === '.') {
+    appendDecimal();
     return;
   }
 
@@ -183,7 +300,7 @@ window.addEventListener('resize', updatePopupScrollIndicator);
 
 document.querySelector('.buttons')?.addEventListener('click', (event) => {
   const button = event.target.closest('button');
-  if (!button) {
+  if (!button || button.id === 'symbolToggle' || button.closest('.symbol-menu')) {
     return;
   }
 
