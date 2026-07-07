@@ -328,11 +328,20 @@ function getLiveResult(expression) {
     return '0';
   }
 
-  if (isIncompleteExpression(expression)) {
+  const trimmedExpression = expression.trim();
+  const normalizedExpression = sanitizeExpression(trimmedExpression);
+  const trailingOperatorMatch = normalizedExpression.match(/([+\-*/^])$/);
+  const expressionForEvaluation = trailingOperatorMatch ? normalizedExpression.slice(0, -1) : normalizedExpression;
+
+  if (!expressionForEvaluation) {
     return '0';
   }
 
-  const result = evaluateExpression(expression);
+  if (isIncompleteExpression(expressionForEvaluation)) {
+    return '0';
+  }
+
+  const result = evaluateExpression(expressionForEvaluation);
   return result === null ? '0' : String(result);
 }
 
