@@ -5,6 +5,7 @@ const resultDisplay = document.querySelector('.result');
 const popupStack = document.getElementById('popupStack');
 const popupTrack = document.getElementById('popupTrack');
 const popupThumb = document.getElementById('popupThumb');
+const historyClearButton = document.getElementById('historyClear');
 
 let currentExpression = '';
 let isCalculationCompleted = false;
@@ -251,6 +252,15 @@ function hideCenterDisplay() {
   resultDisplay.textContent = '0';
 }
 
+function updateHistoryClearButton() {
+  if (!historyClearButton || !popupStack) {
+    return;
+  }
+
+  const hasHistory = popupStack.children.length > 0;
+  historyClearButton.classList.toggle('visible', hasHistory);
+}
+
 function updatePopupScrollIndicator() {
   if (!popupStack || !popupTrack || !popupThumb) {
     return;
@@ -286,6 +296,24 @@ function showExpressionPopup(expressionValue, resultValue) {
 
   const popupItem = document.createElement('div');
   popupItem.className = 'expression-popup';
+  popupItem.dataset.expression = expressionValue;
+  popupItem.dataset.result = resultValue;
+
+  const deleteButton = document.createElement('button');
+  deleteButton.type = 'button';
+  deleteButton.className = 'popup-delete';
+  deleteButton.setAttribute('aria-label', '履歴を削除');
+  deleteButton.textContent = '×';
+  deleteButton.addEventListener('click', () => {
+    popupItem.remove();
+    updateHistoryClearButton();
+    updatePopupScrollIndicator();
+  });
+
+  popupItem.appendChild(deleteButton);
+
+  const contentWrapper = document.createElement('div');
+  contentWrapper.className = 'popup-content';
 
   const measurement = document.createElement('div');
   measurement.className = 'expression-popup single-line';
@@ -303,6 +331,7 @@ function showExpressionPopup(expressionValue, resultValue) {
 
   if (shouldWrap) {
     popupItem.classList.add('multi-line');
+    contentWrapper.classList.add('multi-line');
 
     const expressionLine = document.createElement('div');
     expressionLine.className = 'popup-line';
@@ -312,14 +341,17 @@ function showExpressionPopup(expressionValue, resultValue) {
     resultLine.className = 'popup-line';
     resultLine.textContent = `= ${resultValue}`;
 
-    popupItem.appendChild(expressionLine);
-    popupItem.appendChild(resultLine);
+    contentWrapper.appendChild(expressionLine);
+    contentWrapper.appendChild(resultLine);
   } else {
     popupItem.classList.add('single-line');
-    popupItem.textContent = `${expressionValue} = ${resultValue}`;
+    contentWrapper.classList.add('single-line');
+    contentWrapper.textContent = `${expressionValue} = ${resultValue}`;
   }
 
+  popupItem.appendChild(contentWrapper);
   popupStack.appendChild(popupItem);
+  updateHistoryClearButton();
   requestAnimationFrame(updatePopupScrollIndicator);
 }
 
@@ -418,6 +450,12 @@ if (toggleButton && symbolMenu) {
 }
 
 popupStack?.addEventListener('scroll', updatePopupScrollIndicator);
+
+historyClearButton?.addEventListener('click', () => {
+  popupStack.innerHTML = '';
+  updateHistoryClearButton();
+  updatePopupScrollIndicator();
+});
 
 window.addEventListener('resize', updatePopupScrollIndicator);
 
