@@ -38,45 +38,83 @@ function isIncompleteExpression(expression) {
   return openingParentheses > closingParentheses;
 }
 
-function getOperatorPrecedence(operator) {
-  if (operator === '+' || operator === '-') {
-    return 1;
-  }
+function tokenizeExpression(expression) {
+  const tokens = [];
+  let index = 0;
 
-  if (operator === '*' || operator === '/') {
-    return 2;
-  }
+  while (index < expression.length) {
+    const character = expression[index];
 
-  return 0;
-}
+    if (/\s/.test(character)) {
+      index += 1;
+      continue;
+    }
 
-function applyOperator(values, operators, operator) {
-  const right = values.pop();
-  const left = values.pop();
+    if (/\d|\./.test(character)) {
+      let numberBuffer = character;
+      index += 1;
 
-  if (left === undefined || right === undefined) {
-    throw new Error('Invalid expression');
-  }
-
-  switch (operator) {
-    case '+':
-      values.push(left + right);
-      break;
-    case '-':
-      values.push(left - right);
-      break;
-    case '*':
-      values.push(left * right);
-      break;
-    case '/':
-      if (right === 0) {
-        throw new Error('Division by zero');
+      while (index < expression.length && /\d|\./.test(expression[index])) {
+        numberBuffer += expression[index];
+        index += 1;
       }
-      values.push(left / right);
-      break;
-    default:
-      throw new Error('Unsupported operator');
+
+      tokens.push(numberBuffer);
+      continue;
+    }
+
+    if (character === '(' || character === ')') {
+      tokens.push(character);
+      index += 1;
+      continue;
+    }
+
+    if (['+', '-', '*', '/', '^'].includes(character)) {
+      tokens.push(character);
+      index += 1;
+      continue;
+    }
+
+    if (expression.startsWith('sqrt', index)) {
+      tokens.push('sqrt');
+      index += 4;
+      continue;
+    }
+
+    if (expression.startsWith('sin', index)) {
+      tokens.push('sin');
+      index += 3;
+      continue;
+    }
+
+    if (expression.startsWith('cos', index)) {
+      tokens.push('cos');
+      index += 3;
+      continue;
+    }
+
+    if (expression.startsWith('tan', index)) {
+      tokens.push('tan');
+      index += 3;
+      continue;
+    }
+
+    if (expression.startsWith('π', index)) {
+      tokens.push('π');
+      index += 1;
+      continue;
+    }
+
+    if (expression.startsWith('√', index)) {
+      tokens.push('√');
+      index += 1;
+      continue;
+    }
+
+    throw new Error('Unsupported token');
   }
+
+  return tokens;
 }
 
 function evaluateExpression(expression) {
@@ -85,59 +123,123 @@ function evaluateExpression(expression) {
   }
 
   const sanitizedExpression = sanitizeExpression(expression);
-  const values = [];
-  const operators = [];
-  let numberBuffer = '';
 
   try {
-    const tokens = sanitizedExpression.match(/\d+(?:\.\d+)?|[()+\-*/]/g) || [];
+    const tokens = tokenizeExpression(sanitizedExpression);
+    let index = 0;
 
-    for (const token of tokens) {
-      if (/^\d+(?:\.\d+)?$/.test(token)) {
-        values.push(Number(token));
-        continue;
+    function peek() {
+      return tokens[index];
+    }
+
+    function consume(expected) {
+      const token = tokens[index];
+      if (expected && token !== expected) {
+        throw new Error('Unexpected token');
       }
+      index += 1;
+      return token;
+    }
+
+    function parseExpression() {
+      let value = parseTerm();
+
+      while (peek() === '+' || peek() === '-') {
+        const operator = consume();
+        const right = parseTerm();
+        value = operator === '+' ? value + right : value - right;
+      }
+
+      return value;
+    }
+
+    function parseTerm() {
+      let value = parsePower();
+
+      while (peek() === '*' || peek() === '/') {
+        const operator = consume();
+        const right = parsePower();
+        value = operator === '*' ? value * right : value / right;
+      }
+
+      return value;
+    }
+
+    function parsePower() {
+      let value = parseUnary();
+
+      if (peek() === '^') {
+        consume('^');
+        const exponent = parsePower();
+        value = Math.pow(value, exponent);
+      }
+
+      return value;
+    }
+
+    function parseUnary() {
+      const token = peek();
+
+      if (token === '+') {
+        consume('+');
+        return parseUnary();
+      }
+
+      if (token === '-') {
+        consume('-');
+        return -parseUnary();
+      }
+
+      if (token === '√' || token === 'sqrt') {
+        consume();
+        return Math.sqrt(parseUnary());
+      }
+
+      if (token === 'sin') {
+        consume();
+        return Math.sin(parseUnary());
+      }
+
+      if (token === 'cos') {
+        consume();
+        return Math.cos(parseUnary());
+      }
+
+      if (token === 'tan') {
+        consume();
+        return Math.tan(parseUnary());
+      }
+
+      if (token === 'π') {
+        consume();
+        return Math.PI;
+      }
+
+      return parsePrimary();
+    }
+
+    function parsePrimary() {
+      const token = peek();
 
       if (token === '(') {
-        operators.push(token);
-        continue;
+        consume('(');
+        const value = parseExpression();
+        consume(')');
+        return value;
       }
 
-      if (token === ')') {
-        while (operators.length && operators[operators.length - 1] !== '(') {
-          const operator = operators.pop();
-          applyOperator(values, operators, operator);
-        }
-
-        if (operators.pop() !== '(') {
-          throw new Error('Mismatched parentheses');
-        }
-        continue;
+      if (token && /^\d+(?:\.\d+)?$/.test(token)) {
+        return Number(consume());
       }
 
-      if (['+', '-', '*', '/'].includes(token)) {
-        while (
-          operators.length &&
-          operators[operators.length - 1] !== '(' &&
-          getOperatorPrecedence(operators[operators.length - 1]) >= getOperatorPrecedence(token)
-        ) {
-          const operator = operators.pop();
-          applyOperator(values, operators, operator);
-        }
-
-        operators.push(token);
-      }
+      throw new Error('Unexpected token');
     }
 
-    while (operators.length) {
-      const operator = operators.pop();
-      if (operator === '(') {
-        throw new Error('Mismatched parentheses');
-      }
-      applyOperator(values, operators, operator);
+    const result = parseExpression();
+    if (index !== tokens.length) {
+      throw new Error('Unexpected trailing token');
     }
 
-    const result = values[0];
     return Number.isFinite(result) ? result : null;
   } catch (error) {
     return null;
@@ -221,16 +323,22 @@ function showExpressionPopup(expressionValue, resultValue) {
   requestAnimationFrame(updatePopupScrollIndicator);
 }
 
-function updateDisplay() {
-  expressionDisplay.textContent = currentExpression || '0';
-
-  if (!currentExpression) {
-    resultDisplay.textContent = '0';
-    return;
+function getLiveResult(expression) {
+  if (!expression) {
+    return '0';
   }
 
-  const result = evaluateExpression(currentExpression);
-  resultDisplay.textContent = result === null ? '0' : String(result);
+  if (isIncompleteExpression(expression)) {
+    return '0';
+  }
+
+  const result = evaluateExpression(expression);
+  return result === null ? '0' : String(result);
+}
+
+function updateDisplay() {
+  expressionDisplay.textContent = currentExpression || '0';
+  resultDisplay.textContent = getLiveResult(currentExpression);
 }
 
 function appendDecimal() {
@@ -292,6 +400,12 @@ if (toggleButton && symbolMenu) {
     const isOpen = symbolMenu.classList.toggle('open');
     symbolMenu.setAttribute('aria-hidden', String(!isOpen));
   });
+
+  symbolMenu.querySelectorAll('.menu-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      appendValue(button.textContent.trim());
+    });
+  });
 }
 
 popupStack?.addEventListener('scroll', updatePopupScrollIndicator);
@@ -300,7 +414,7 @@ window.addEventListener('resize', updatePopupScrollIndicator);
 
 document.querySelector('.buttons')?.addEventListener('click', (event) => {
   const button = event.target.closest('button');
-  if (!button || button.id === 'symbolToggle' || button.closest('.symbol-menu')) {
+  if (!button || button.id === 'symbolToggle') {
     return;
   }
 
