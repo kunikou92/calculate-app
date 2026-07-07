@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>電卓アプリ</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="calculator">
+      <section class="display" aria-label="計算表示">
+        <div class="expression">12 + 3 × 4</div>
+        <div class="result">24</div>
+      </section>
+
+      <section class="controls">
+        <section class="buttons" aria-label="電卓ボタン">
+          <button type="button" class="btn function">C</button>
+          <button type="button" class="btn function">(</button>
+          <button type="button" class="btn function">)</button>
+          <button type="button" class="btn operator">÷</button>
+
+          <button type="button" class="btn number">7</button>
+          <button type="button" class="btn number">8</button>
+          <button type="button" class="btn number">9</button>
+          <button type="button" class="btn operator">×</button>
+
+          <button type="button" class="btn number">4</button>
+          <button type="button" class="btn number">5</button>
+          <button type="button" class="btn number">6</button>
+          <button type="button" class="btn operator">−</button>
+
+          <button type="button" class="btn number">1</button>
+          <button type="button" class="btn number">2</button>
+          <button type="button" class="btn number">3</button>
+          <button type="button" class="btn operator">+</button>
+
+          <button type="button" class="btn function">00</button>
+          <button type="button" class="btn number">0</button>
+          <button type="button" class="btn function">.</button>
+          <button type="button" class="btn operator equal">=</button>
+
+          <button type="button" id="symbolToggle" class="btn function symbol-toggle">記号</button>
+        </section>
+
+        <aside class="symbol-menu" id="symbolMenu" aria-label="記号メニュー" aria-hidden="true">
+          <button type="button" class="btn function menu-btn">√</button>
+          <button type="button" class="btn function menu-btn">^</button>
+          <button type="button" class="btn function menu-btn">sin</button>
+          <button type="button" class="btn function menu-btn">cos</button>
+          <button type="button" class="btn function menu-btn">tan</button>
+          <button type="button" class="btn function menu-btn">π</button>
+        </aside>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
