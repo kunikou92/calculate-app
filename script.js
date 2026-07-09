@@ -1,14 +1,21 @@
-const toggleButton = document.getElementById('symbolToggle');
-const symbolMenu = document.getElementById('symbolMenu');
-const expressionDisplay = document.querySelector('.expression');
-const resultDisplay = document.querySelector('.result');
-const popupStack = document.getElementById('popupStack');
-const popupTrack = document.getElementById('popupTrack');
-const popupThumb = document.getElementById('popupThumb');
-const historyClearButton = document.getElementById('historyClear');
+const elements = {
+  toggleButton: document.getElementById('symbolToggle'),
+  symbolMenu: document.getElementById('symbolMenu'),
+  expressionDisplay: document.querySelector('.expression'),
+  resultDisplay: document.querySelector('.result'),
+  popupStack: document.getElementById('popupStack'),
+  popupTrack: document.getElementById('popupTrack'),
+  popupThumb: document.getElementById('popupThumb'),
+  historyClearButton: document.getElementById('historyClear'),
+  calculatorButtons: document.querySelector('.buttons'),
+};
 
-let currentExpression = '';
-let isCalculationCompleted = false;
+const state = {
+  expression: '',
+  isCalculationCompleted: false,
+};
+
+const operators = new Set(['+', '-', '*', '/', '^']);
 
 function sanitizeExpression(expression) {
   return expression
@@ -26,24 +33,21 @@ function isIncompleteExpression(expression) {
     return true;
   }
 
-  const lastCharacter = trimmed[trimmed.length - 1];
-  const operators = ['+', '-', '*', '/', '^'];
-
-  if (operators.includes(lastCharacter)) {
+  const lastCharacter = trimmed.at(-1);
+  if (operators.has(lastCharacter)) {
     return true;
   }
 
-  const openingParentheses = (trimmed.match(/\(/g) || []).length;
-  const closingParentheses = (trimmed.match(/\)/g) || []).length;
+  const openingParentheses = (trimmed.match(/\(/g) ?? []).length;
+  const closingParentheses = (trimmed.match(/\)/g) ?? []).length;
 
   return openingParentheses > closingParentheses;
 }
 
 function tokenizeExpression(expression) {
   const tokens = [];
-  let index = 0;
 
-  while (index < expression.length) {
+  for (let index = 0; index < expression.length; ) {
     const character = expression[index];
 
     if (/\s/.test(character)) {
@@ -70,7 +74,7 @@ function tokenizeExpression(expression) {
       continue;
     }
 
-    if (['+', '-', '*', '/', '^'].includes(character)) {
+    if (operators.has(character)) {
       tokens.push(character);
       index += 1;
       continue;
@@ -135,20 +139,18 @@ function evaluateExpression(expression) {
     const tokens = tokenizeExpression(sanitizedExpression);
     let index = 0;
 
-    function peek() {
-      return tokens[index];
-    }
+    const peek = () => tokens[index];
 
-    function consume(expected) {
+    const consume = (expected) => {
       const token = tokens[index];
       if (expected && token !== expected) {
         throw new Error('Unexpected token');
       }
       index += 1;
       return token;
-    }
+    };
 
-    function parseExpression() {
+    const parseExpression = () => {
       let value = parseTerm();
 
       while (peek() === '+' || peek() === '-') {
@@ -158,9 +160,9 @@ function evaluateExpression(expression) {
       }
 
       return value;
-    }
+    };
 
-    function parseTerm() {
+    const parseTerm = () => {
       let value = parsePower();
 
       while (peek() === '*' || peek() === '/') {
@@ -170,9 +172,9 @@ function evaluateExpression(expression) {
       }
 
       return value;
-    }
+    };
 
-    function parsePower() {
+    const parsePower = () => {
       let value = parseUnary();
 
       if (peek() === '^') {
@@ -182,9 +184,9 @@ function evaluateExpression(expression) {
       }
 
       return value;
-    }
+    };
 
-    function applyFactorial(value) {
+    const applyFactorial = (value) => {
       while (peek() === '!') {
         consume('!');
 
@@ -193,22 +195,22 @@ function evaluateExpression(expression) {
         }
 
         let factorial = 1;
-        for (let index = 2; index <= value; index += 1) {
-          factorial *= index;
+        for (let currentIndex = 2; currentIndex <= value; currentIndex += 1) {
+          factorial *= currentIndex;
         }
 
         value = factorial;
       }
 
       return value;
-    }
+    };
 
-    function parsePostfix() {
+    const parsePostfix = () => {
       const value = parsePrimary();
       return applyFactorial(value);
-    }
+    };
 
-    function parseUnary() {
+    const parseUnary = () => {
       const token = peek();
 
       if (token === '+') {
@@ -247,9 +249,9 @@ function evaluateExpression(expression) {
       }
 
       return parsePostfix();
-    }
+    };
 
-    function parsePrimary() {
+    const parsePrimary = () => {
       const token = peek();
 
       if (token === '(') {
@@ -264,63 +266,73 @@ function evaluateExpression(expression) {
       }
 
       throw new Error('Unexpected token');
-    }
+    };
 
     const result = parseExpression();
+
     if (index !== tokens.length) {
       throw new Error('Unexpected trailing token');
     }
 
     return Number.isFinite(result) ? result : null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
 
+function renderDisplay() {
+  if (!elements.expressionDisplay || !elements.resultDisplay) {
+    return;
+  }
+
+  elements.expressionDisplay.textContent = state.expression || '0';
+  elements.resultDisplay.textContent = getLiveResult(state.expression);
+}
+
 function hideCenterDisplay() {
-  expressionDisplay.textContent = '0';
-  resultDisplay.textContent = '0';
+  elements.expressionDisplay.textContent = '0';
+  elements.resultDisplay.textContent = '0';
 }
 
 function updateHistoryClearButton() {
-  if (!historyClearButton || !popupStack) {
+  if (!elements.historyClearButton || !elements.popupStack) {
     return;
   }
 
-  const hasHistory = popupStack.children.length > 0;
-  historyClearButton.classList.toggle('visible', hasHistory);
+  const hasHistory = elements.popupStack.children.length > 0;
+  elements.historyClearButton.classList.toggle('visible', hasHistory);
 }
 
 function updatePopupScrollIndicator() {
-  if (!popupStack || !popupTrack || !popupThumb) {
+  if (!elements.popupStack || !elements.popupTrack || !elements.popupThumb) {
     return;
   }
 
-  const shouldShowTrack = popupStack.children.length > 8;
-  popupTrack.classList.toggle('visible', shouldShowTrack);
+  const shouldShowTrack = elements.popupStack.children.length > 8;
+  elements.popupTrack.classList.toggle('visible', shouldShowTrack);
 
   if (!shouldShowTrack) {
     return;
   }
 
-  const scrollTop = popupStack.scrollTop;
-  const scrollHeight = popupStack.scrollHeight - popupStack.clientHeight;
-  const trackHeight = popupTrack.clientHeight;
-  const thumbHeight = Math.max(40, (popupStack.clientHeight / popupStack.scrollHeight) * trackHeight);
+  const scrollTop = elements.popupStack.scrollTop;
+  const scrollHeight = elements.popupStack.scrollHeight - elements.popupStack.clientHeight;
+  const trackHeight = elements.popupTrack.clientHeight;
+  const thumbHeight = Math.max(40, (elements.popupStack.clientHeight / elements.popupStack.scrollHeight) * trackHeight);
 
   if (scrollHeight <= 0) {
-    popupThumb.style.top = '0px';
-    popupThumb.style.height = `${thumbHeight}px`;
+    elements.popupThumb.style.top = '0px';
+    elements.popupThumb.style.height = `${thumbHeight}px`;
     return;
   }
 
   const top = (scrollTop / scrollHeight) * (trackHeight - thumbHeight);
-  popupThumb.style.top = `${top}px`;
-  popupThumb.style.height = `${thumbHeight}px`;
+  elements.popupThumb.style.top = `${top}px`;
+  elements.popupThumb.style.height = `${thumbHeight}px`;
 }
 
-function showExpressionPopup(expressionValue, resultValue) {
-  if (!popupStack) {
+function addHistoryEntry(expressionValue, resultValue) {
+  if (!elements.popupStack) {
     return;
   }
 
@@ -347,12 +359,14 @@ function showExpressionPopup(expressionValue, resultValue) {
 
   const measurement = document.createElement('div');
   measurement.className = 'expression-popup single-line';
-  measurement.style.position = 'absolute';
-  measurement.style.left = '-9999px';
-  measurement.style.top = '-9999px';
-  measurement.style.visibility = 'hidden';
-  measurement.style.maxWidth = 'none';
-  measurement.style.width = 'auto';
+  Object.assign(measurement.style, {
+    position: 'absolute',
+    left: '-9999px',
+    top: '-9999px',
+    visibility: 'hidden',
+    maxWidth: 'none',
+    width: 'auto',
+  });
   measurement.textContent = `${expressionValue} = ${resultValue}`;
   document.body.appendChild(measurement);
 
@@ -380,7 +394,7 @@ function showExpressionPopup(expressionValue, resultValue) {
   }
 
   popupItem.appendChild(contentWrapper);
-  popupStack.appendChild(popupItem);
+  elements.popupStack.appendChild(popupItem);
   updateHistoryClearButton();
   requestAnimationFrame(updatePopupScrollIndicator);
 }
@@ -395,11 +409,7 @@ function getLiveResult(expression) {
   const trailingOperatorMatch = normalizedExpression.match(/([+\-*/^])$/);
   const expressionForEvaluation = trailingOperatorMatch ? normalizedExpression.slice(0, -1) : normalizedExpression;
 
-  if (!expressionForEvaluation) {
-    return '0';
-  }
-
-  if (isIncompleteExpression(expressionForEvaluation)) {
+  if (!expressionForEvaluation || isIncompleteExpression(expressionForEvaluation)) {
     return '0';
   }
 
@@ -407,36 +417,31 @@ function getLiveResult(expression) {
   return result === null ? '0' : String(result);
 }
 
-function updateDisplay() {
-  expressionDisplay.textContent = currentExpression || '0';
-  resultDisplay.textContent = getLiveResult(currentExpression);
-}
-
 function appendDecimal() {
-  if (isCalculationCompleted) {
-    currentExpression = '';
-    isCalculationCompleted = false;
+  if (state.isCalculationCompleted) {
+    state.expression = '';
+    state.isCalculationCompleted = false;
   }
 
-  if (!currentExpression || /[+\-*/^]/.test(currentExpression.slice(-1)) || currentExpression.endsWith('(')) {
-    currentExpression += '0.';
-    updateDisplay();
+  if (!state.expression || /[+\-*/^]/.test(state.expression.slice(-1)) || state.expression.endsWith('(')) {
+    state.expression += '0.';
+    renderDisplay();
     return;
   }
 
-  const lastToken = currentExpression.split(/([+\-*/^()])/g).filter(Boolean).pop() || '';
+  const lastToken = state.expression.split(/([+\-*/^()])/g).filter(Boolean).at(-1) ?? '';
   if (!lastToken || lastToken.includes('.')) {
     return;
   }
 
-  currentExpression += '.';
-  updateDisplay();
+  state.expression += '.';
+  renderDisplay();
 }
 
 function appendValue(value) {
   if (value === 'C') {
-    currentExpression = '';
-    isCalculationCompleted = false;
+    state.expression = '';
+    state.isCalculationCompleted = false;
     hideCenterDisplay();
     return;
   }
@@ -447,56 +452,63 @@ function appendValue(value) {
   }
 
   if (value === '=') {
-    const result = evaluateExpression(currentExpression);
+    const result = evaluateExpression(state.expression);
     const displayValue = result === null ? '0' : String(result);
-    const expressionValue = currentExpression || '0';
+    const expressionValue = state.expression || '0';
 
-    isCalculationCompleted = true;
-    showExpressionPopup(expressionValue, displayValue);
+    state.isCalculationCompleted = true;
+    addHistoryEntry(expressionValue, displayValue);
+    renderDisplay();
     return;
   }
 
-  if (isCalculationCompleted) {
-    currentExpression = '';
-    isCalculationCompleted = false;
+  if (state.isCalculationCompleted) {
+    state.expression = '';
+    state.isCalculationCompleted = false;
     hideCenterDisplay();
   }
 
-  currentExpression += value;
-  updateDisplay();
+  state.expression += value;
+  renderDisplay();
 }
 
-if (toggleButton && symbolMenu) {
-  toggleButton.addEventListener('click', () => {
-    const isOpen = symbolMenu.classList.toggle('open');
-    symbolMenu.setAttribute('aria-hidden', String(!isOpen));
-  });
-
-  symbolMenu.querySelectorAll('.menu-btn').forEach((button) => {
-    button.addEventListener('click', () => {
-      appendValue(button.textContent.trim());
+function bindEvents() {
+  if (elements.toggleButton && elements.symbolMenu) {
+    elements.toggleButton.addEventListener('click', () => {
+      const isOpen = elements.symbolMenu.classList.toggle('open');
+      elements.symbolMenu.setAttribute('aria-hidden', String(!isOpen));
     });
-  });
-}
 
-popupStack?.addEventListener('scroll', updatePopupScrollIndicator);
-
-historyClearButton?.addEventListener('click', () => {
-  popupStack.innerHTML = '';
-  updateHistoryClearButton();
-  updatePopupScrollIndicator();
-});
-
-window.addEventListener('resize', updatePopupScrollIndicator);
-
-document.querySelector('.buttons')?.addEventListener('click', (event) => {
-  const button = event.target.closest('button');
-  if (!button || button.id === 'symbolToggle') {
-    return;
+    elements.symbolMenu.querySelectorAll('.menu-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        appendValue(button.textContent.trim());
+      });
+    });
   }
 
-  const value = button.textContent.trim();
-  appendValue(value);
-});
+  elements.popupStack?.addEventListener('scroll', updatePopupScrollIndicator);
 
-updateDisplay();
+  elements.historyClearButton?.addEventListener('click', () => {
+    elements.popupStack.replaceChildren();
+    updateHistoryClearButton();
+    updatePopupScrollIndicator();
+  });
+
+  window.addEventListener('resize', updatePopupScrollIndicator);
+
+  elements.calculatorButtons?.addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button || button.id === 'symbolToggle') {
+      return;
+    }
+
+    appendValue(button.textContent.trim());
+  });
+}
+
+function init() {
+  bindEvents();
+  renderDisplay();
+}
+
+document.addEventListener('DOMContentLoaded', init);
